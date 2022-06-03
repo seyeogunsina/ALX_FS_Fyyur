@@ -13,6 +13,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate
+from sqlalchemy import func
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -57,13 +58,13 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-  areas_list = db.session.query(venues.city, venues.state).distinct()
+  areas_list = db.session.query(Venue.city, Venue.state).distinct()
   data = []
   for area in areas_list:
-    venues_in_area = venues.query.filter_by(state=area.state, city=area.city)
+    venues_in_area = Venue.query.filter_by(state=area.state, city=area.city).order_by(Venue.state, Venue.city)
     venue_list = []
     for venue in venues_in_area:
-      upcoming_shows = shows.query.filter_by(venue_id=venue.id).filter_by(shows.start_time>datetime.now()).all()
+      upcoming_shows = db.session.query(Show).filter(Show.venue_id==venue.id).filter(Show.start_time>datetime.now()).all()
       venue_list.append({
         "id": venue.id,
         "name": venue.name,
@@ -81,13 +82,21 @@ def search_venues():
   # TODO: implement search on venues with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
+  data = []
+  response = {}
+  search_term = request.form.get('search_term', '')
+  venues = db.session.query(Venue).filter(Venue.name.ilike('%' + search_term + '%')).all()
+  count = len(venues)
+  for venue in venues:
+    num_upcoming_shows = len(db.session.query(Show).filter(Show.venue_id==venue.id).filter(Show.start_time>datetime.now()).all())
+    data.append({
+      "id": venue.id,
+      "name": venue.name,
+      "num_upcoming_shows": num_upcoming_shows
+    })
   response={
-    "count": 1,
-    "data": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
+    "count": count,
+    "data": data
   }
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
