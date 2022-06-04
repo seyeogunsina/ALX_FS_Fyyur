@@ -28,7 +28,7 @@ class Artist(db.Model):
     state = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(120), nullable=False)
     website = db.Column(db.String(120), nullable=True)
-    genres = db.Column(db.String(120), nullable=False)
+    genres = db.Column(db.ARRAY(db.String), nullable=False)
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     seeking_venue = db.Column(db.Boolean, default=False)
