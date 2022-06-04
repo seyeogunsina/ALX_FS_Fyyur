@@ -3,6 +3,7 @@
 #----------------------------------------------------------------------------#
 
 import json
+from unicodedata import name
 import dateutil.parser
 import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for, abort
@@ -220,16 +221,13 @@ def delete_venue(venue_id):
 @app.route('/artists')
 def artists():
   # TODO: replace with real data returned from querying the database
-  data=[{
-    "id": 4,
-    "name": "Guns N Petals",
-  }, {
-    "id": 5,
-    "name": "Matt Quevedo",
-  }, {
-    "id": 6,
-    "name": "The Wild Sax Band",
-  }]
+  data = []
+  artists = db.session.query(Artist).all()
+  for artist in artists:
+    data.append({
+      "id": artist.id,
+      "name": artist.name
+    })
   return render_template('pages/artists.html', artists=data)
 
 @app.route('/artists/search', methods=['POST'])
@@ -237,13 +235,21 @@ def search_artists():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
   # search for "band" should return "The Wild Sax Band".
+  data = []
+  response = {}
+  search_term = request.form.get('search_term', '')
+  artists = db.session.query(Artist).filter(Artist.name.ilike('%' + search_term + '%')).all()
+  count = len(artists)
+  for artist in artists:
+    num_upcoming_shows = len(db.session.query(Show).filter(Show.artist_id==artist.id).filter(Show.start_time>datetime.now()).all())
+    data.append({
+      "id": artist.id,
+      "name": artist.name,
+      "num_upcoming_shows": num_upcoming_shows
+    })
   response={
-    "count": 1,
-    "data": [{
-      "id": 4,
-      "name": "Guns N Petals",
-      "num_upcoming_shows": 0,
-    }]
+    "count": count,
+    "data": data
   }
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
