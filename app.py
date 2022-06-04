@@ -23,7 +23,7 @@ app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+migrate = Migrate(app, db, compare_type=True)
 
 # TODO: connect to a local postgresql database
 
@@ -204,7 +204,7 @@ def delete_venue(venue_id):
 @app.route('/artists')
 def artists():
   data = []
-  artists = db.session.query(Artist).all()
+  artists = db.session.query(Artist).order_by(Artist.name).all()
   for artist in artists:
     data.append({
       "id": artist.id,
@@ -217,7 +217,7 @@ def search_artists():
   data = []
   response = {}
   search_term = request.form.get('search_term', '')
-  artists = db.session.query(Artist).filter(Artist.name.ilike('%' + search_term + '%')).all()
+  artists = db.session.query(Artist).filter(Artist.name.ilike('%' + search_term + '%')).order_by(Artist.name).all()
   count = len(artists)
   for artist in artists:
     num_upcoming_shows = len(db.session.query(Show).filter(Show.artist_id==artist.id).filter(Show.start_time>datetime.now()).all())
